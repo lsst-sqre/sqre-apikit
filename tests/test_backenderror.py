@@ -18,7 +18,7 @@ def test_backenderror():
     # Status code not an integer
     with pytest.raises(TypeError):
         apikit.BackendError("marathon error", 26.2)
-    # Content not a string
+    # Content not a basestring
     with pytest.raises(TypeError):
         apikit.BackendError("not a toaster", 922, [])
     # Minimal

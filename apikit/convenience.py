@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """Convenience functions for writing LSST microservices"""
 from flask import Flask, jsonify
-
+from past.builtins import basestring
 # pylint: disable=too-many-arguments
 
 
@@ -196,7 +196,7 @@ class BackendError(Exception):
 
     `status_code`: `int`
 
-    `content`: `str` or `None`
+    `content`: `basestr` (Python3: `past.builtins.basestring`) or `None`
 
     Notes
     -----
@@ -220,8 +220,8 @@ class BackendError(Exception):
             else:
                 raise TypeError("'status_code' must be an int")
         if content is not None:
-            if not isinstance(content, str):
-                raise TypeError("'status_code' must be a str")
+            if not isinstance(content, basestring):
+                raise TypeError("'content' must be a basestring")
         self.content = content
 
     def to_dict(self):

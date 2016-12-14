@@ -9,7 +9,7 @@ DESCRIPTION = 'LSST Data Management SQuaRE microservice tools'
 AUTHOR = 'Adam Thornton'
 AUTHOR_EMAIL = 'athornton@lsst.org'
 URL = 'https://github.com/lsst-sqre/sqre-apikit'
-VERSION = '0.0.3'
+VERSION = '0.0.4'
 LICENSE = 'MIT'
 
 
@@ -41,7 +41,8 @@ setup(
     keywords='lsst',
     packages=find_packages(exclude=['docs', 'tests*']),
     install_requires=[
-        'Flask==0.11.1'
+        'Flask==0.11.1',
+        'future==0.16.0'
     ],
     tests_require=['pytest'],
 )
