@@ -170,3 +170,74 @@ class APIFlask(Flask):
                            version=version,
                            api_version=api_version,
                            auth=auth)
+
+
+class BackendError(Exception):
+    """
+    Creates a JSON-formatted error for use in LSST/DM microservices.
+
+    Parameters
+    ----------
+    reason: `str`
+        Reason for the exception
+
+    status_code: `int`, optional
+        Status code to be returned, defaults to 400.
+
+    content: `str`, optional
+        Textual content of the underlying error.
+
+    Returns
+    -------
+    :class:`apikit.BackendError` instance.  This class will have the
+    following fields:
+
+    `reason`: `str` or `None`
+
+    `status_code`: `int`
+
+    `content`: `str` or `None`
+
+    Notes
+    -----
+    This class is intended for use pretty much as described at
+    (http://flask.pocoo.org/docs/0.11/patterns/apierrors/).
+    """
+
+    reason = None
+    status_code = 400
+    content = None
+
+    def __init__(self, reason, status_code=None, content=None):
+        """Exception for target service error."""
+        Exception.__init__(self)
+        if not isinstance(reason, str):
+            raise TypeError("'reason' must be a str")
+        self.reason = reason
+        if status_code is not None:
+            if isinstance(status_code, int):
+                self.status_code = status_code
+            else:
+                raise TypeError("'status_code' must be an int")
+        if content is not None:
+            if not isinstance(content, str):
+                raise TypeError("'status_code' must be a str")
+        self.content = content
+
+    def to_dict(self):
+        """Convenience method for creating custom error pages.
+        Returns
+        -------
+
+        `dict` : A dictionary with the following fields:
+
+            `reason`: `str` or `None`
+            `status_code`: `str`
+            `error_content`: `str` or `None`
+
+            The intention is to pass the resulting dict to `flask.jsonify()`
+            to create a custom error response.
+        """
+        return {"reason": self.reason,
+                "status_code": self.status_code,
+                "error_content": self.content}
