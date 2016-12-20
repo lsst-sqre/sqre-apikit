@@ -37,3 +37,11 @@ def test_lsstflask_type_errors():
     with pytest.raises(TypeError):
         apikit.APIFlask("bob", "2.0", "http://example.repo", "BobApp",
                         api_version=5, auth="")
+    # Route is not None, a string, or a list of strings
+    with pytest.raises(TypeError):
+        apikit.APIFlask("bob", "2.0", "http://example.repo", "BobApp",
+                        route=2)
+    # Route is a list that contains a non-string
+    with pytest.raises(TypeError):
+        apikit.APIFlask("bob", "2.0", "http://example.repo", "BobApp",
+                        route=[2])

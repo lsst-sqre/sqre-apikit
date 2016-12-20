@@ -4,7 +4,7 @@ import apikit
 import pytest
 from flask import Flask
 
-# Yes, it is a very long fimctopm name.
+# Yes, it is a very long function name.
 # pylint: disable=invalid-name
 
 

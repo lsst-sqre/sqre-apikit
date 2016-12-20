@@ -1,16 +1,15 @@
 #!/usr/bin/env python
 """Convenience functions for writing LSST microservices"""
-from flask import Flask, jsonify
+from flask import Flask, jsonify, current_app
 from past.builtins import basestring
 # pylint: disable=too-many-arguments
 
 
 def set_flask_metadata(app, version, repository, description,
-                       api_version="1.0", name=None, auth=None):
+                       api_version="1.0", name=None, auth=None,
+                       route=None):
     """
-    Creates a /metadata route that returns service metadata.  Also creates
-    a /v{api_version}/metadata route, and those routes with ".json"
-    appended.
+    Sets metadata on the application to be returned via metadata routes.
 
     Parameters
     ----------
@@ -33,13 +32,17 @@ def set_flask_metadata(app, version, repository, description,
         Microservice name.  Defaults to the Flask app name.  If set, changes
         the Flask app name to match.
 
-    auth : `dict`, `str`, or `None`.
+    auth : `dict`, `str`, or `None`
         The 'auth' parameter must be None, the empty string, the string
         'none', or a dict containing a 'type' key, which must be 'none',
         'basic', or 'bitly-proxy'.  If the type is not 'none', there must
         also be a 'data' key containing a dict which holds authentication
         information appropriate to the authentication type.  The legal
         non-dict 'auth' values are equivalent to a 'type' key of 'none'.
+
+    route : `None`, `str`, or list of `str`, optional
+        The 'route' parameter must be None, a string, or a list of strings.
+        If supplied, each string will be prepended to the metadata route.
 
     Raises
     ------
@@ -50,8 +53,8 @@ def set_flask_metadata(app, version, repository, description,
 
     Returns
     -------
-        Nothing, but decorates `app` with `/metadata` and
-        `/v{app_version}/metadata` routes.
+        Nothing, but sets `app` metadata and decorates it with `/metadata`
+        and `/v{app_version}/metadata` routes.
     """
 
     errstr = set_flask_metadata.__doc__
@@ -88,15 +91,71 @@ def set_flask_metadata(app, version, repository, description,
         if atp not in ["basic", "bitly-proxy"] or "data" not in auth:
             raise ValueError(errstr)
     app.config["AUTH"] = auth
+    add_metadata_route(app, route)
 
-    # Pylint doesn't recognize that the decorator uses return_metadata
-    # pylint: disable=unused-variable
-    @app.route("/metadata")
-    @app.route("/v" + api_version + "/metadata")
-    @app.route("/metadata.json")
-    @app.route("/v" + api_version + "/metadata.json")
-    def _emit_metadata():
-        app.return_metadata()
+
+def add_metadata_route(app, route):
+    """
+    Creates a /metadata route that returns service metadata.  Also creates
+    a /v{api_version}/metadata route, and those routes with ".json"
+    appended.  If route is specified, prepends it (or each component) to the
+    front of the route.
+
+    Parameters
+    ----------
+    app : :class:`flask.Flask` instance
+        Flask application for the microservice you're adding metadata to.
+
+    route : `None`, `str`, or list of `str`, optional
+        The 'route' parameter must be None, a string, or a list of strings.
+        If supplied, each string will be prepended to the metadata route.
+
+    Returns
+    -------
+        Nothing, but decorates app with `/metadata`
+        and `/v{app_version}/metadata` routes.
+
+    """
+    errstr = add_metadata_route.__doc__
+    if route is None:
+        route = [""]
+    if isinstance(route, str):
+        route = [route]
+    if not isinstance(route, list):
+        raise TypeError(errstr)
+    if not all(isinstance(item, str) for item in route):
+        raise TypeError(errstr)
+    name = app.config["NAME"]
+    api_version = app.config["API_VERSION"]
+    repository = app.config["REPOSITORY"]
+    version = app.config["VERSION"]
+    description = app.config["DESCRIPTION"]
+    auth = app.config["AUTH"]["type"]
+
+    for rcomp in route:
+        # Make canonical
+        rcomp = "/" + rcomp.strip("/")
+        if rcomp == "/":
+            rcomp = ""
+        for rbase in ["/metadata", "/v" + api_version + "/metadata"]:
+            for rext in ["", ".json"]:
+                rte = rcomp + rbase + rext
+                with app.app_context():
+                    app.add_url_rule(rte, '_return_metadata', _return_metadata)
+
+
+def _return_metadata():
+    """
+    Return JSON-formatted metadata for route attachment.
+    Requires flask.current_app to be set, which means 
+     `with app.app_context()`
+    """
+    app = current_app
+    retdict = {"auth": app.config["AUTH"]["type"]}
+    for fld in ["name", "repository", "version", "description",
+                "api_version"]:
+        retdict[fld] = app.config[fld.upper()]
+    return jsonify(retdict)
 
 
 class APIFlask(Flask):
@@ -128,13 +187,17 @@ class APIFlask(Flask):
     api_version: `str`, optional
         Version of the SQuaRE service API framework.  Defaults to '1.0'.
 
-    auth : `dict`, `str`, or `None`.
+    auth : `dict`, `str`, or `None`
         The 'auth' parameter must be None, the empty string, the string
         'none', or a dict containing a 'type' key, which must be 'none',
         'basic', or 'bitly-proxy'.  If the type is not 'none', there must
         also be a 'data' key containing a dict which holds authentication
         information appropriate to the authentication type.  The legal
         non-dict 'auth' values are equivalent to a 'type' key of 'none'.
+
+    route : `None`, `str`, or list of `str`, optional
+        The 'route' parameter must be None, a string, or a list of strings.
+        If supplied, each string will be prepended to the metadata route.
 
     **kwargs
         Any other arguments to be passed to the :class:`flask.Flask`
@@ -155,7 +218,7 @@ class APIFlask(Flask):
     """
 
     def __init__(self, name, version, repository, description,
-                 api_version="1.0", auth=None, **kwargs):
+                 api_version="1.0", auth=None, route=None, **kwargs):
         """Initialize a new app"""
         if not isinstance(name, str):
             raise TypeError(APIFlask.__doc__)
@@ -164,29 +227,12 @@ class APIFlask(Flask):
                            repository=repository,
                            version=version,
                            api_version=api_version,
-                           auth=auth)
+                           auth=auth,
+                           route=route)
 
-    def return_metadata(self):
-        """Return JSON - formatted metadata for route attachment"""
-        retdict = {"auth": self.config["AUTH"]["type"]}
-        for fld in ["name", "description", "repository", "version",
-                    "api_version"]:
-            retdict[fld] = self.config[fld.upper()]
-        return jsonify(retdict)
-
-    def add_root_route(self, route):
-        """Add a new root route at the front of the metadata routes."""
-        if not isinstance(route, str):
-            raise TypeError(APIFlask.__doc__)
-        route = route.strip("/")
-        # pylint: disable=unused-variable
-        api_version = self.config["API_VERSION"]
-
-        for rte in ["/" + route + "/metadata",
-                    "/" + route + "/v" + api_version + "/metadata",
-                    "/" + route + "/metadata.json",
-                    "/" + route + "/v" + api_version + "/metadata.json"]:
-            self.add_url_rule(rte, 'return_metadata', self.return_metadata)
+    def add_route_prefix(self, route):
+        """Add a new route at the front of the metadata routes."""
+        add_metadata_route(self, route)
 
 
 class BackendError(Exception):

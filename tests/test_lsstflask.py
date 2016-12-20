@@ -35,3 +35,18 @@ def test_lsstflask():
     flapp = apikit.APIFlask("bob", "2.0", "http://example.repo", "BobApp",
                             auth={"type": "bitly-proxy", "data": {}})
     assert flapp.config["AUTH"]["type"] == "bitly-proxy"
+    # Route type string
+    # Empty
+    flapp = apikit.APIFlask("bob", "2.0", "http://example.repo", "BobApp",
+                            route="")
+    # Specified
+    flapp = apikit.APIFlask("bob", "2.0", "http://example.repo", "BobApp",
+                            route="/bob")
+    # Route type list
+    flapp = apikit.APIFlask("bob", "2.0", "http://example.repo", "BobApp",
+                            route=[""])
+    flapp = apikit.APIFlask("bob", "2.0", "http://example.repo", "BobApp",
+                            route=["/bob"])
+    # Route type list
+    flapp = apikit.APIFlask("bob", "2.0", "http://example.repo", "BobApp",
+                            route=["", "/bob"])

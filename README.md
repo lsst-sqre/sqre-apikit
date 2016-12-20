@@ -41,20 +41,23 @@ and the proxy starting-OAuth2 endpoint.
 
 ## Provided Functionality
 
-`sqre-apikit` provides one module, `apikit`, which contains a function,
-`set_flask_metadata`, and a class, `APIFlask`.
+`sqre-apikit` provides one module, `apikit`, which contains three
+functions, `set_flask_metadata`, `add_metadata_route`, and
+`return_metadata`, and a class, `APIFlask`.
 
-The function is designed to add the metadata route to an existing Flask
-app, and the class is designed to return a subclass of
-`flask.Flask` which has the metadata route already baked into it.
+The `set_flask_metadata` sets metadata on an existing Flask app and adds
+metadata routes.  `add_metadata_route` is designed to add routing for
+each component in the route list to an existing Flask app.
+`return_metadata` returns the JSON representation of the metadata for
+the service.
 
-The class comes with a method, `add_root_route`, which adds the metadata
-route underneath another root route.  This is useful, for instance, if
-wiring the microservice up through Kubernetes and its Ingress resources,
-which provide routing but not rewriting.
+The `APIFlask` class creates an instance of a subclass of `flask.Flask`
+which has the metadata added and the route(s) already baked into it.
 
-The class has a second method, `return_metadata`, which returns the
-JSON representation of the class's metadata.
+The class comes with a method, `add_route_prefix`, which adds the
+metadata route underneath another route.  This is useful, for instance,
+if wiring the microservice up through Kubernetes and its Ingress
+resources, which provide routing but not rewriting.
 
 ## Installation
 
