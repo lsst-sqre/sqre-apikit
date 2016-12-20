@@ -48,6 +48,14 @@ The function is designed to add the metadata route to an existing Flask
 app, and the class is designed to return a subclass of
 `flask.Flask` which has the metadata route already baked into it.
 
+The class comes with a method, `add_root_route`, which adds the metadata
+route underneath another root route.  This is useful, for instance, if
+wiring the microservice up through Kubernetes and its Ingress resources,
+which provide routing but not rewriting.
+
+The class has a second method, `return_metadata`, which returns the
+JSON representation of the class's metadata.
+
 ## Installation
 
 `sqre-apikit` runs on Python 2.7 or 3.5. You can install it with

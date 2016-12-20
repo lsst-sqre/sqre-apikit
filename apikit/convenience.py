@@ -95,13 +95,8 @@ def set_flask_metadata(app, version, repository, description,
     @app.route("/v" + api_version + "/metadata")
     @app.route("/metadata.json")
     @app.route("/v" + api_version + "/metadata.json")
-    def return_metadata():
-        """Return JSON - formatted metadata on /metadata route"""
-        retdict = {"auth": app.config["AUTH"]["type"]}
-        for fld in ["name", "description", "repository", "version",
-                    "api_version"]:
-            retdict[fld] = app.config[fld.upper()]
-        return jsonify(retdict)
+    def _emit_metadata():
+        app.return_metadata()
 
 
 class APIFlask(Flask):
@@ -170,6 +165,28 @@ class APIFlask(Flask):
                            version=version,
                            api_version=api_version,
                            auth=auth)
+
+    def return_metadata(self):
+        """Return JSON - formatted metadata for route attachment"""
+        retdict = {"auth": self.config["AUTH"]["type"]}
+        for fld in ["name", "description", "repository", "version",
+                    "api_version"]:
+            retdict[fld] = self.config[fld.upper()]
+        return jsonify(retdict)
+
+    def add_root_route(self, route):
+        """Add a new root route at the front of the metadata routes."""
+        if not isinstance(route, str):
+            raise TypeError(APIFlask.__doc__)
+        route = route.strip("/")
+        # pylint: disable=unused-variable
+        api_version = self.config["API_VERSION"]
+
+        for rte in ["/" + route + "/metadata",
+                    "/" + route + "/v" + api_version + "/metadata",
+                    "/" + route + "/metadata.json",
+                    "/" + route + "/v" + api_version + "/metadata.json"]:
+            self.add_url_rule(rte, 'return_metadata', self.return_metadata)
 
 
 class BackendError(Exception):
