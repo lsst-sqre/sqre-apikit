@@ -36,3 +36,7 @@ def test_backenderror():
                   "status_code": exc.status_code,
                   "error_content": exc.content}
     assert exc.to_dict() == resultdict
+    # Check string representation
+    expected = "BackendError: %d %s [%s]" % (exc.status_code, exc.reason,
+                                             exc.content)
+    assert str(exc) == expected
