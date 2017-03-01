@@ -9,7 +9,7 @@ DESCRIPTION = 'LSST Data Management SQuaRE microservice tools'
 AUTHOR = 'Adam Thornton'
 AUTHOR_EMAIL = 'athornton@lsst.org'
 URL = 'https://github.com/lsst-sqre/sqre-apikit'
-VERSION = '0.0.10'
+VERSION = '0.0.11'
 LICENSE = 'MIT'
 
 

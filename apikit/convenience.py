@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 """Convenience functions for writing LSST microservices"""
 from flask import Flask, jsonify, current_app
+# pylint: disable=redefined-builtin,too-many-arguments
 from past.builtins import basestring
-# pylint: disable=too-many-arguments
 
 
 def set_flask_metadata(app, version, repository, description,
@@ -125,12 +125,7 @@ def add_metadata_route(app, route):
         raise TypeError(errstr)
     if not all(isinstance(item, str) for item in route):
         raise TypeError(errstr)
-    name = app.config["NAME"]
     api_version = app.config["API_VERSION"]
-    repository = app.config["REPOSITORY"]
-    version = app.config["VERSION"]
-    description = app.config["DESCRIPTION"]
-    auth = app.config["AUTH"]["type"]
 
     for rcomp in route:
         # Make canonical
@@ -147,7 +142,7 @@ def add_metadata_route(app, route):
 def _return_metadata():
     """
     Return JSON-formatted metadata for route attachment.
-    Requires flask.current_app to be set, which means 
+    Requires flask.current_app to be set, which means
      `with app.app_context()`
     """
     app = current_app
@@ -286,6 +281,11 @@ class BackendError(Exception):
             if not isinstance(content, basestring):
                 raise TypeError("'content' must be a basestring")
         self.content = content
+
+    def __str__(self):
+        """Useful textual representation"""
+        return "BackendError: %d %s [%s]" % (self.status_code,
+                                             self.reason, self.content)
 
     def to_dict(self):
         """Convenience method for creating custom error pages.
