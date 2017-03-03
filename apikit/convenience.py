@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 """Convenience functions for writing LSST microservices"""
+import time
+import requests
 from flask import Flask, jsonify, current_app
 # pylint: disable=redefined-builtin,too-many-arguments
 from past.builtins import basestring
@@ -151,6 +153,115 @@ def _return_metadata():
                 "api_version"]:
         retdict[fld] = app.config[fld.upper()]
     return jsonify(retdict)
+
+
+# pylint: disable = too-many-locals, too-many-arguments
+def retry_request(method, url, headers=None, payload=None, auth=None,
+                  tries=10, initial_interval=5):
+    """Retry an HTTP request with linear backoff.  Returns the response if
+    the status code is < 400 or waits (try * initial_interval) seconds and
+    retries (up to tries times) if it
+    is not.
+
+    Parameters
+    ----------
+    method: `str`
+        Method: `GET`, `PUT`, or `POST`
+    url: `str`
+        URL of HTTP request
+    headers: `dict`
+        HTTP headers to supply.
+    payload: `dict`
+        Payload for request; passed as parameters to `GET`, JSON message
+        body for `PUT`/`POST`.
+    auth: `tuple`
+        Authentication tuple for Basic/Digest/Custom HTTP Auth.
+    tries: `int`
+        Number of attempts to make.  Defaults to `10`.
+    initial_interval: `int`
+        Interval between first and second try, and amount of time added
+        before each successive attempt is made.  Defaults to `5`.
+
+    Returns
+    -------
+    :class:`requests.Response`
+        The final HTTP Response received.
+
+    Raises
+    ------
+    :class:`apikit.BackendError`
+        The `status_code` will be `500`, and the reason `Internal Server
+        Error`.  Its `content` will be diagnostic of the last response
+        received.
+    """
+    method = method.lower()
+    attempt = 1
+    while True:
+        if method == "get":
+            resp = requests.get(url, headers=headers, params=payload,
+                                auth=auth)
+        elif method == "put" or method == "post":
+            resp = requests.put(url, headers=headers, json=payload, auth=auth)
+        else:
+            raise_ise("Bad method %s: must be 'get', 'put', or 'post" %
+                      method)
+        if resp.status_code < 400:
+            break
+        delay = initial_interval * attempt
+        if attempt >= tries:
+            raise_ise("Failed to '%s' %s after %d attempts." %
+                      (method, url, tries) +
+                      "  Last response was '%d %s' [%s]" %
+                      (resp.status_code, resp.reason, resp.text.strip()))
+        time.sleep(delay)
+        attempt += 1
+    return resp
+
+
+def raise_ise(text):
+    """Turn a failed request response into a BackendError that represents
+    an Internal Server Error.  Handy for reflecting HTTP errors from farther
+    back in the call chain as failures of your service.
+
+    Parameters
+    ----------
+    text: `str`
+        Error text.
+
+    Raises
+    ------
+    :class:`apikit.BackendError`
+        The `status_code` will be `500`, and the reason `Internal Server
+        Error`.  Its `content` will be the text you passed.
+    """
+    if isinstance(text, Exception):
+        # Just in case we are exuberantly passed the entire Exception and
+        #  not its textual representation.
+        text = str(text)
+    raise BackendError(status_code=500,
+                       reason="Internal Server Error",
+                       content=text)
+
+
+def raise_from_response(resp):
+    """Turn a failed request response into a BackendError.  Handy for
+    reflecting HTTP errors from farther back in the call chain.
+
+    Parameters
+    ----------
+    resp: :class:`requests.Response`
+
+    Raises
+    ------
+    :class:`apikit.BackendError`
+        If `resp.status_code` is equal to or greater than 400.
+    """
+    if resp.status_code < 400:
+        # Request was successful.  Or at least, not a failure.
+        return
+    raise BackendError(status_code=resp.status_code,
+                       reason=resp.reason,
+                       content=resp.text)
 
 
 class APIFlask(Flask):

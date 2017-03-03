@@ -1,5 +1,6 @@
 #!/usr/bin/env python
-"""Test set_flask_metadata function for input parameters causing ValueErrors."""
+"""Test set_flask_metadata function for input parameters causing ValueErrors.
+"""
 import apikit
 import pytest
 from flask import Flask
@@ -9,7 +10,8 @@ from flask import Flask
 
 
 def test_set_flask_metadata_value_errors():
-    """Test set_flask_metadata for input parameters causing ValueErrors."""
+    """Test set_flask_metadata for input parameters causing ValueErrors.
+    """
     app = Flask("bob")
     # Empty version
     with pytest.raises(ValueError):

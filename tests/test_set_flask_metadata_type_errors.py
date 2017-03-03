@@ -1,12 +1,14 @@
 #!/usr/bin/env python
-"""Test set_flask_metadata function for input parameters causing TypeErrors."""
+"""Test set_flask_metadata function for input parameters causing TypeErrors.
+"""
 import apikit
 import pytest
 from flask import Flask
 
 
 def test_set_flask_metadata():
-    """Test set_flask_metadata function for parameters causing TypeErrors."""
+    """Test set_flask_metadata function for parameters causing TypeErrors.
+    """
     # No arguments at all.
     # Obviously the linter is correct here...
     with pytest.raises(TypeError):

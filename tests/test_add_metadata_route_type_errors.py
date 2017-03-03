@@ -1,5 +1,6 @@
 #!/usr/bin/env python
-"""Test add_metadata_route function for input parameters causing TypeErrors."""
+"""Test add_metadata_route function for input parameters causing TypeErrors.
+"""
 import apikit
 import pytest
 from flask import Flask
@@ -9,7 +10,8 @@ from flask import Flask
 
 
 def test_add_metadata_route_type_errors():
-    """Test set_flask_metadata function for parameters causing TypeErrors."""
+    """Test set_flask_metadata function for parameters causing TypeErrors.
+    """
     app = Flask("bob")
     apikit.set_flask_metadata(app, "2.0", "http://example.repo", "BobApp")
     # Add a not-string

@@ -1,11 +1,13 @@
 #!/usr/bin/env python
-"""Test APIFlask class for input parameters causing TypeErrors."""
+"""Test APIFlask class for input parameters causing TypeErrors.
+"""
 import apikit
 import pytest
 
 
 def test_lsstflask_type_errors():
-    """Test APIFlask for input parameters causing TypeErrors."""
+    """Test APIFlask for input parameters causing TypeErrors.
+    """
     # No arguments at all.
     # Obviously the linter is correct here...
     with pytest.raises(TypeError):
