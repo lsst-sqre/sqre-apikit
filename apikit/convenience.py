@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 """Convenience functions for writing LSST microservices"""
+import time
+import requests
 from flask import Flask, jsonify, current_app
 # pylint: disable=redefined-builtin,too-many-arguments
 from past.builtins import basestring
@@ -151,6 +153,69 @@ def _return_metadata():
                 "api_version"]:
         retdict[fld] = app.config[fld.upper()]
     return jsonify(retdict)
+
+
+# pylint: disable = too-many-locals, too-many-arguments
+def retry_request(method, url, headers=None, payload=None, auth=None,
+                  tries=10, initial_interval=5):
+    """Retry an HTTP request with linear backoff.  Returns the response if
+    the status code is < 400 or waits (try * initial_interval) seconds and
+    retries (up to tries times) if it
+    is not.
+
+    Parameters
+    ----------
+    method: `str`
+        Method: `GET`, `PUT`, or `POST`
+    url: `str`
+        URL of HTTP request
+    headers: `dict`
+        HTTP headers to supply.
+    payload: `dict`
+        Payload for request; passed as parameters to `GET`, JSON message
+        body for `PUT`/`POST`.
+    auth: `tuple`
+        Authentication tuple for Basic/Digest/Custom HTTP Auth.
+    tries: `int`
+        Number of attempts to make.  Defaults to `10`.
+    initial_interval: `int`
+        Interval between first and second try, and amount of time added
+        before each successive attempt is made.  Defaults to `5`.
+
+    Returns
+    -------
+    :class:`requests.Response`
+        The final HTTP Response received.
+
+    Raises
+    ------
+    :class:`apikit.BackendError`
+        The `status_code` will be `500`, and the reason `Internal Server
+        Error`.  Its `content` will be diagnostic of the last response
+        received.
+    """
+    method = method.lower()
+    attempt = 1
+    while True:
+        if method == "get":
+            req = requests.get(url, headers=headers, params=payload,
+                               auth=auth)
+        elif method == "put" or method == "post":
+            req = requests.put(url, headers=headers, json=payload, auth=auth)
+        else:
+            raise_ise("Bad method %s: must be 'get', 'put', or 'post" %
+                      method)
+        if req.status_code < 400:
+            break
+        delay = initial_interval * attempt
+        if attempt >= tries:
+            raise_ise("Failed to '%s' %s after %d attempts." %
+                      (method, url, tries) +
+                      "  Last response was '%d %s' [%s]" %
+                      (req.status_code, req.reason, req.text.strip()))
+        time.sleep(delay)
+        attempt += 1
+    return req
 
 
 def raise_ise(text):
