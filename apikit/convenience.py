@@ -198,24 +198,24 @@ def retry_request(method, url, headers=None, payload=None, auth=None,
     attempt = 1
     while True:
         if method == "get":
-            req = requests.get(url, headers=headers, params=payload,
-                               auth=auth)
+            resp = requests.get(url, headers=headers, params=payload,
+                                auth=auth)
         elif method == "put" or method == "post":
-            req = requests.put(url, headers=headers, json=payload, auth=auth)
+            resp = requests.put(url, headers=headers, json=payload, auth=auth)
         else:
             raise_ise("Bad method %s: must be 'get', 'put', or 'post" %
                       method)
-        if req.status_code < 400:
+        if resp.status_code < 400:
             break
         delay = initial_interval * attempt
         if attempt >= tries:
             raise_ise("Failed to '%s' %s after %d attempts." %
                       (method, url, tries) +
                       "  Last response was '%d %s' [%s]" %
-                      (req.status_code, req.reason, req.text.strip()))
+                      (resp.status_code, resp.reason, resp.text.strip()))
         time.sleep(delay)
         attempt += 1
-    return req
+    return resp
 
 
 def raise_ise(text):
