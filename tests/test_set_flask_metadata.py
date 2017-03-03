@@ -1,11 +1,13 @@
 #!/usr/bin/env python
-"""Test set_flask_metadata function with legal parameters."""
+"""Test set_flask_metadata function with legal parameters.
+"""
 import apikit
 from flask import Flask
 
 
 def test_set_flask_metadata():
-    """Test metadata creation with legal parameters."""
+    """Test metadata creation with legal parameters.
+    """
     # We need a fresh app each time.
     # Minimal invocation
     app = Flask("bob")

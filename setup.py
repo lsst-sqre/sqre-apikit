@@ -9,7 +9,7 @@ DESCRIPTION = 'LSST Data Management SQuaRE microservice tools'
 AUTHOR = 'Adam Thornton'
 AUTHOR_EMAIL = 'athornton@lsst.org'
 URL = 'https://github.com/lsst-sqre/sqre-apikit'
-VERSION = '0.0.11'
+VERSION = '0.1.0'
 LICENSE = 'MIT'
 
 
@@ -19,6 +19,7 @@ def local_read(filename):
         os.path.abspath(os.path.dirname(__file__)),
         filename)
     return codecs.open(full_filename, 'r', 'utf-8').read()
+
 
 long_description = local_read('README.md')
 
@@ -42,7 +43,8 @@ setup(
     packages=find_packages(exclude=['docs', 'tests*']),
     install_requires=[
         'Flask==0.11.1',
-        'future==0.16.0'
+        'future==0.16.0',
+        'requests>=2.13.0,<3.0.0'
     ],
     tests_require=['pytest'],
 )

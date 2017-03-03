@@ -1,11 +1,13 @@
 #!/usr/bin/env python
-"""Test APIFlask class creation with input parameters causing ValueErrors."""
+"""Test APIFlask class creation with input parameters causing ValueErrors.
+"""
 import apikit
 import pytest
 
 
 def test_lsstflask_value_errors():
-    """Test APIFlask class creation with parameters causing ValueErrors."""
+    """Test APIFlask class creation with parameters causing ValueErrors.
+    """
     # Empty name
     with pytest.raises(ValueError):
         apikit.APIFlask("", "2.0", "http://example.repo", "BobApp")

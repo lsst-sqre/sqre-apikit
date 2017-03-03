@@ -1,10 +1,12 @@
 #!/usr/bin/env python
-"""Test APIFlask class with legal parameters."""
+"""Test APIFlask class with legal parameters.
+"""
 import apikit
 
 
 def test_lsstflask():
-    """Test APIFlask class with legal parameters."""
+    """Test APIFlask class with legal parameters.
+    """
     # We need a fresh app each time.
     # Minimal invocation
     flapp = apikit.APIFlask("bob", "2.0", "http://example.repo", "BobApp")

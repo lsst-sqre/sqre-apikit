@@ -1,12 +1,14 @@
 #!/usr/bin/env/python
-"""Test BackendError functionality"""
+"""Test BackendError functionality.
+"""
 
 import apikit
 import pytest
 
 
 def test_backenderror():
-    """Test BackendError functionality"""
+    """Test BackendError functionality.
+    """
     # Leave out reason
     # Obviously the linter is correct here...
     with pytest.raises(TypeError):

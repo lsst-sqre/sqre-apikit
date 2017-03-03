@@ -153,6 +153,52 @@ def _return_metadata():
     return jsonify(retdict)
 
 
+def raise_ise(text):
+    """Turn a failed request response into a BackendError that represents
+    an Internal Server Error.  Handy for reflecting HTTP errors from farther
+    back in the call chain as failures of your service.
+
+    Parameters
+    ----------
+    text: `str`
+        Error text.
+
+    Raises
+    ------
+    :class:`apikit.BackendError`
+        The `status_code` will be `500`, and the reason `Internal Server
+        Error`.  Its `content` will be the text you passed.
+    """
+    if isinstance(text, Exception):
+        # Just in case we are exuberantly passed the entire Exception and
+        #  not its textual representation.
+        text = str(text)
+    raise BackendError(status_code=500,
+                       reason="Internal Server Error",
+                       content=text)
+
+
+def raise_from_response(resp):
+    """Turn a failed request response into a BackendError.  Handy for
+    reflecting HTTP errors from farther back in the call chain.
+
+    Parameters
+    ----------
+    resp: :class:`requests.Response`
+
+    Raises
+    ------
+    :class:`apikit.BackendError`
+        If `resp.status_code` is equal to or greater than 400.
+    """
+    if resp.status_code < 400:
+        # Request was successful.  Or at least, not a failure.
+        return
+    raise BackendError(status_code=resp.status_code,
+                       reason=resp.reason,
+                       content=resp.text)
+
+
 class APIFlask(Flask):
     """
     Creates an APIFlask, which is a :class:`flask.Flask` instance subclass
