@@ -1,7 +1,12 @@
 #!/usr/bin/env python
 """Convenience functions for writing LSST microservices"""
+import logging
+import os
+import sys
 import time
+import logging.handlers
 import requests
+import structlog
 from flask import Flask, jsonify, current_app
 # pylint: disable=redefined-builtin,too-many-arguments
 from past.builtins import basestring
@@ -264,6 +269,74 @@ def raise_from_response(resp):
                        content=resp.text)
 
 
+def get_logger(file=None, syslog=False, loghost=None, level=None):
+    """Creates a logging object compatible with Python standard logging,
+       but which, as a `structlog` instance, emits JSON.
+
+    Parameters
+    ----------
+    file: `None` or `str` (default `None`)
+        If given, send log output to file; otherwise, to `stdout`.
+    syslog: `bool` (default `False`)
+        If `True`, log to syslog.
+    loghost: `None` or `str` (default `None`)
+        If given, send syslog output to specified host, UDP port 514.
+    level: `None` or `str` (default `None`)
+        If given, and if one of (case-insensitive) `DEBUG`, `INFO`,
+        `WARNING`, `ERROR`, or `CRITICAL`, log events of that level or
+        higher.  Defaults to `WARNING`.
+
+
+    Returns
+    -------
+    :class:`structlog.Logger`
+        A logging object
+
+    """
+
+    if not syslog:
+        if not file:
+            handler = logging.StreamHandler(sys.stdout)
+        else:
+            handler = logging.FileHandler(file)
+    else:
+        if loghost:
+            handler = logging.handlers.SysLogHandler(loghost, 514)
+        else:
+            handler = logging.handlers.SysLogHandler()
+    root_logger = logging.getLogger()
+    if level:
+        level = level.upper()
+        lldict = {
+            'DEBUG': logging.DEBUG,
+            'INFO': logging.INFO,
+            'WARNING': logging.WARNING,
+            'ERROR': logging.ERROR,
+            'CRITICAL': logging.CRITICAL
+        }
+        if level in lldict:
+            root_logger.setLevel(lldict[level])
+    root_logger.addHandler(handler)
+    structlog.configure(
+        processors=[
+            structlog.stdlib.filter_by_level,
+            structlog.stdlib.add_logger_name,
+            structlog.stdlib.add_log_level,
+            structlog.stdlib.PositionalArgumentsFormatter(),
+            structlog.processors.TimeStamper(fmt="iso"),
+            structlog.processors.StackInfoRenderer(),
+            structlog.processors.format_exc_info,
+            structlog.processors.JSONRenderer()
+        ],
+        context_class=structlog.threadlocal.wrap_dict(dict),
+        logger_factory=structlog.stdlib.LoggerFactory(),
+        wrapper_class=structlog.stdlib.BoundLogger,
+        cache_logger_on_first_use=True,
+    )
+    log = structlog.get_logger()
+    return log
+
+
 class APIFlask(Flask):
     """
     Creates an APIFlask, which is a :class:`flask.Flask` instance subclass
@@ -275,6 +348,21 @@ class APIFlask(Flask):
     :class:`Flask.flask` instance as the first argument, except that using
     :class:`apikit.APIFlask` will (obviously) give you an object for which
     `isinstance(obj,apikit.APIFlask)` is true.
+
+    It will also set the Flask config variables `DEBUG` (if the environment
+    variable `DEBUG` is set and non-empty, the value will be `True`) and
+    `LOGGER`, which will be set to the structlog instance created for this
+    object.
+
+    If the environment variable `LOGFILE` is set, the logger will send its
+    logs to that file rather than standard output.  If `LOGFILE` is not set and
+    `LOG_TO_SYSLOG` is set, the logger will send its logs to syslog, and
+    additionally if `LOGHOST` is also set, then the logger will send its logs
+    to syslog on LOGHOST port 514 UDP.  If `LOGLEVEL` is set (to one of the
+    standard `DEBUG`, `INFO`, `WARNING`, `ERROR`, or `CRITICAL`), logs of that
+    severity or higher only will be recorded; otherwise the default loglevel
+    is `WARNING`.  The environment variable `DEBUG` implies `LOGLEVEL` will be
+    treated as `DEBUG`.
 
     Parameters
     ----------
@@ -335,6 +423,25 @@ class APIFlask(Flask):
                            api_version=api_version,
                            auth=auth,
                            route=route)
+        logfile = None
+        syslog = False
+        loghost = None
+        loglevel = None
+        if "LOGFILE" in os.environ and os.environ["LOGFILE"]:
+            logfile = os.environ["LOGFILE"]
+        elif "LOG_TO_SYSLOG" in os.environ and os.environ["LOG_TO_SYSLOG"]:
+            syslog = True
+            if "LOGHOST" in os.environ and os.environ["LOGHOST"]:
+                loghost = os.environ["LOGHOST"]
+        if "LOGLEVEL" in os.environ and os.environ["LOGLEVEL"]:
+            loglevel = os.environ["LOGLEVEL"]
+        if "DEBUG" in os.environ and os.environ["DEBUG"]:
+            self.debug = True
+            self.config["DEBUG"] = True
+            loglevel = "DEBUG"
+        log = get_logger(file=logfile, syslog=syslog, loghost=loghost,
+                         level=loglevel)
+        self.config["LOGGER"] = log
 
     def add_route_prefix(self, route):
         """Add a new route at the front of the metadata routes."""
