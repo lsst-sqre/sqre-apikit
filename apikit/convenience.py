@@ -162,7 +162,7 @@ def _return_metadata():
 
 # pylint: disable = too-many-locals, too-many-arguments
 def retry_request(method, url, headers=None, payload=None, auth=None,
-                  tries=10, initial_interval=5):
+                  tries=10, initial_interval=5, callback=None):
     """Retry an HTTP request with linear backoff.  Returns the response if
     the status code is < 400 or waits (try * initial_interval) seconds and
     retries (up to tries times) if it
@@ -186,6 +186,14 @@ def retry_request(method, url, headers=None, payload=None, auth=None,
     initial_interval: `int`
         Interval between first and second try, and amount of time added
         before each successive attempt is made.  Defaults to `5`.
+    callback : callable
+        A callable (function) object that is called each time a retry is
+        needed. The callable has a keyword argument signature:
+
+        - ``n``: number of tries completed (integer).
+        - ``remaining``: number of tries remaining (integer).
+        - ``status``: HTTP status of the previous call.
+        - ``content``: body content of the previous call.
 
     Returns
     -------
@@ -218,6 +226,9 @@ def retry_request(method, url, headers=None, payload=None, auth=None,
                       (method, url, tries) +
                       "  Last response was '%d %s' [%s]" %
                       (resp.status_code, resp.reason, resp.text.strip()))
+        if callback is not None:
+            callback(n=attempt, remaining=tries - attempt,
+                     status=resp.status_code, content=resp.text.strip())
         time.sleep(delay)
         attempt += 1
     return resp
