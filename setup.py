@@ -43,7 +43,7 @@ setup(
     keywords='lsst',
     packages=find_packages(exclude=['docs', 'tests*']),
     install_requires=[
-        'Flask==0.11.1',
+        'Flask==1.0',
         'future==0.16.0',
         'requests>=2.13.0,<3.0.0',
         'structlog>=16.1.0',
